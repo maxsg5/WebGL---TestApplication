@@ -5,15 +5,19 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>webGL stuff</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body onload="InitDemo();">
+<body onload="">
+    <img id="crate-image" src="crate.jpg" alt="" width="0" height="0">
     <canvas id="screen-canvas" width="800" height="600">
         Your browser doesn't support HTML5
     </canvas>
     <br>
-    <i>Canvas is above this text</i>
-    <img id="crate-image" src="crate.jpg" alt="" width="0" height="0">
+    
+    <input class="control-buttons" type="file" id="myFile" multiple size="50" onchange="loadTexture();">
+    
     <script src="gl-matrix-min.js"></script>
+    <script src="loadTexture.js"></script>
     <script src="app.js"></script>
     
 </body>
