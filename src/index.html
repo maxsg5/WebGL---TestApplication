@@ -5,9 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>webGL stuff</title>
-    <link rel="stylesheet" href="../styles/style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body onload="">
+<body onload="InitDemo()">
     <img id="crate-image" src="crate.jpg" alt="" width="0" height="0">
     <canvas id="screen-canvas" width="800" height="600">
         Your browser doesn't support HTML5
@@ -17,9 +17,9 @@
     <input class="control-buttons" type="file" id="myFile" name="myFile">
     <button class="control-buttons" id="upload-button" onclick="saveFile()">Upload</button>
     
-    <script src="../scripts/gl-matrix-min.js"></script>
-    <script src="../scripts/loadTexture.js"></script>
-    <script src="../scripts/app.js"></script>
+    <script src="gl-matrix-min.js"></script>
+    <script src="loadTexture.js"></script>
+    <script src="app.js"></script>
     
 </body>
 </html>
