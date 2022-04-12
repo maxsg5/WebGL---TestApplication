@@ -1,2 +1,3 @@
-FROM httpd:2.4
-COPY ./src/ /usr/local/apache2/htdocs/
+FROM php:apache
+COPY ./src/ /var/www/html/
+COPY ./img/ /var/www/html/
