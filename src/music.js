@@ -13,7 +13,7 @@ function start() {
   // Make a buffer to receive the audio data
   const numPoints = analyser.frequencyBinCount;
   const audioDataArray = new Uint8Array(numPoints);
-
+  console.log(audioDataArray);
   function render() {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 

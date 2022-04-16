@@ -1,35 +1,45 @@
 var loop;
 var gl;
+var model;
 var textures = [];
 var reset = false;
-var vertexShaderSource = `
-    precision mediump float;
 
-    attribute vec3 vertPosition;
-    attribute vec2 vertTexCoord;
-    varying vec2 fragTexCoord;
-    uniform mat4 mWorld;
-    uniform mat4 mView;
-    uniform mat4 mProj;
-
-    void main(){
-        fragTexCoord = vertTexCoord;
-        gl_Position = mProj * mView * mWorld * vec4(vertPosition, 1.0);
-    }
-    `;
-
-var fragmentShaderSource = `
-    precision mediump float;
-    varying vec2 fragTexCoord;
-    uniform sampler2D sampler;
-
-    void main(){
-        gl_FragColor = texture2D(sampler, fragTexCoord);
-    }
-    `;
-
+//this function is callback hell right now there may be some way to make it better
 var InitDemo = function() {
+    loadTextResource('shader.vs.glsl', function(vsErr, vsText) {
+        if (vsErr) {
+            alert('Fatal error getting vertex shader (see console)');
+            console.error(vsErr);
+        } else {
+            loadTextResource('shader.fs.glsl', function(fsErr, fsText) {
+                if (fsErr) {
+                    alert('Fatal error getting fragment shader (see console)');
+                    console.error(fsErr);
+                } else {
+                    loadJSONResource('lemur.json', function(modelErr, modelObj) {
+                        if(modelErr){
+                            alert('Fatal error getting model (see console)');
+                            console.error(modelErr);
+                        } else {
+                            loadImage('lemurT.png', function(imgErr, img) {
+                                if(imgErr){
+                                    alert('Fatal error getting image (see console)');
+                                    console.error(imgErr);
+                                } else {
+                                    RunDemo(vsText, fsText, img, modelObj);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
+}
+
+var RunDemo = function(vertexShaderText, fragmentShaderText, imgTexture, modelObj) {
     console.log("this is working");
+    model = modelObj;
 
     var canvas = document.getElementById("screen-canvas"); //get the canvas element
     gl = canvas.getContext("webgl"); //get the context of the canvas
@@ -42,6 +52,36 @@ var InitDemo = function() {
     if(!gl){
         alert("Your browser does not support WebGL");
     }
+
+    //setup mouse input on the canvas
+    var mouseDown = false;
+    var lastMouseX = null;
+    var lastMouseY = null;
+    canvas.addEventListener("mousedown", function(ev) {
+        mouseDown = true;
+        lastMouseX = ev.clientX;
+        lastMouseY = ev.clientY;
+    });
+    canvas.addEventListener("mouseup", function(ev) {
+        mouseDown = false;
+    });
+    canvas.addEventListener("mousemove", function(ev) {
+        if(mouseDown){
+            var newX = ev.clientX;
+            var newY = ev.clientY;
+            var deltaX = newX - lastMouseX;
+            var deltaY = newY - lastMouseY;
+            lastMouseX = newX;
+            lastMouseY = newY;
+            //console.log("deltaX: " + deltaX + " deltaY: " + deltaY);
+            //console.log("newX: " + newX + " newY: " + newY);
+            //console.log("lastMouseX: " + lastMouseX + " lastMouseY: " + lastMouseY);
+            model.rotation.x += deltaX * 0.01;
+            model.rotation.y += deltaY * 0.01;
+        }
+    });
+    
+    
 
     // canvas.width = window.innerWidth;
     // canvas.height = window.innerHeight;
@@ -60,8 +100,8 @@ var InitDemo = function() {
     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
 
     //attach source code to shaders
-    gl.shaderSource(vertexShader, vertexShaderSource);
-    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.shaderSource(vertexShader, vertexShaderText);
+    gl.shaderSource(fragmentShader, fragmentShaderText);
 
     //compile shaders
     gl.compileShader(vertexShader);
@@ -167,32 +207,45 @@ var InitDemo = function() {
 		21, 20, 22,
 		22, 20, 23
 	];
+
+var lemurIndices = [].concat.apply([],modelObj.meshes[0].faces);
+var lemurTextureCoords = modelObj.meshes[0].texturecoords[0];
+var lemurVerticies = modelObj.meshes[0].vertices;
+
+
     var boxVertexBufferObject = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(boxVertices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lemurVerticies), gl.STATIC_DRAW);
 
     var boxIndexBufferObject = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, boxIndexBufferObject);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(boxIndices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(lemurIndices), gl.STATIC_DRAW);
 
+    var boxTextureCoordBufferObject = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, boxTextureCoordBufferObject);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lemurTextureCoords), gl.STATIC_DRAW);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, boxVertexBufferObject);
     //set attribute pointers
     var positionAttribLocation = gl.getAttribLocation(program, "vertPosition");
-    var texCoordAttribLocation = gl.getAttribLocation(program, "vertTexCoord");
     gl.vertexAttribPointer(
         positionAttribLocation, //attribute location
         3, //number of elements per attribute
         gl.FLOAT, //type of elements
         gl.FALSE,
-        5 * Float32Array.BYTES_PER_ELEMENT, //size of an individual vertex
+        3 * Float32Array.BYTES_PER_ELEMENT, //size of an individual vertex
         0 //offset from the beginning of a single vertex to this attribute
     );
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, boxTextureCoordBufferObject);
+    var texCoordAttribLocation = gl.getAttribLocation(program, "vertTexCoord");
     gl.vertexAttribPointer(
         texCoordAttribLocation, //attribute location
         2, //number of elements per attribute
         gl.FLOAT, //type of elements
         gl.FALSE,
-        5 * Float32Array.BYTES_PER_ELEMENT, //size of an individual vertex
-        3 * Float32Array.BYTES_PER_ELEMENT //offset from the beginning of a single vertex to this attribute
+        2 * Float32Array.BYTES_PER_ELEMENT, //size of an individual vertex
+        0
     );
 
     //enable attribute pointers
@@ -208,9 +261,8 @@ var InitDemo = function() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
-    var img = new Image(0,0);
-    img.src = "crate.jpg";
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imgTexture);
 
     textures.push(boxTexture);
 
@@ -228,7 +280,7 @@ var InitDemo = function() {
     var viewMatrix = new Float32Array(16);
     var worldMatrix = new Float32Array(16);
     glMatrix.mat4.identity(worldMatrix);
-    glMatrix.mat4.lookAt(viewMatrix, [0, 0, -5], [0, 0, 0], [0, 1, 0]);
+    glMatrix.mat4.lookAt(viewMatrix, [0, 0, -150], [0, 0, 0], [0, 1, 0]);
     glMatrix.mat4.perspective(projMatrix, glMatrix.glMatrix.toRadian(45), canvas.width / canvas.height, 0.1, 1000.0);
 
     gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix);
@@ -258,7 +310,7 @@ var InitDemo = function() {
 
         glMatrix.mat4.mul(worldMatrix, yRotationMatrix, xRotationMatrix); //combine the two rotations
         
-        gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix); //send the matrix to the shader
+        //gl.uniformMatrix4fv(matWorldUniformLocation, gl.FALSE, worldMatrix); //send the matrix to the shader
         //clear the canvas
         gl.clearColor(0.75, 0.85, 0.8, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -267,7 +319,7 @@ var InitDemo = function() {
         gl.bindTexture(gl.TEXTURE_2D, textures[textureNum]);
         //gl.activeTexture(gl.TEXTURE1);
         
-        gl.drawElements(gl.TRIANGLES, boxIndices.length, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, lemurIndices.length, gl.UNSIGNED_SHORT, 0);
         gl.bindTexture(gl.TEXTURE_2D, null);
         requestAnimationFrame(loop);
     
